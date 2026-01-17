@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4 fw-bold text-primary">Добро пожаловать в Al Khorazmiy School!</h1>
+        <p class="lead text-secondary mt-3">
+            Современная платформа для управления школой. Электронный журнал, расписание и учет посещаемости.
+        </p>
+        
+        <div class="card mt-5 p-4">
+            <h5 class="card-title">Быстрый старт</h5>
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mt-3">
+                <a href="/login" class="btn btn-primary btn-lg px-4 gap-3">Войти в систему</a>
+                <a href="/docs" class="btn btn-outline-secondary btn-lg px-4">Документация API</a>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card p-3 h-100">
+                    <h3>📚</h3>
+                    <h5>Предметы</h5>
+                    <p class="small text-muted">Управление учебным планом</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 h-100">
+                    <h3>👥</h3>
+                    <h5>Ученики</h5>
+                    <p class="small text-muted">База данных учащихся</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 h-100">
+                    <h3>✅</h3>
+                    <h5>Оценки</h5>
+                    <p class="small text-muted">Электронный журнал</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

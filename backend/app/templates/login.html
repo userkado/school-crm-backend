@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h3 class="text-center mb-4">Вход в систему</h3>
+            
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email адрес</label>
+                    <input type="email" class="form-control" id="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Пароль</label>
+                    <input type="password" class="form-control" id="password" required>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Войти</button>
+                </div>
+                <div id="error-msg" class="text-danger mt-3 text-center" style="display: none;"></div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); // Останавливаем стандартную отправку формы
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('error-msg');
+
+        // FastAPI ожидает данные в формате формы (username, password), а не JSON
+        const formData = new FormData();
+        formData.append('username', email); // В FastAPI 'username' это наш email
+        formData.append('password', password);
+
+        try {
+            const response = await fetch('/auth/login', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Сохраняем токен в LocalStorage (память браузера)
+                localStorage.setItem('token', data.access_token);
+                // Перенаправляем на главную (позже сделаем перенаправление в личный кабинет)
+                alert("Успешный вход! Токен сохранен.");
+                window.location.href = "/dashboard"; 
+            } else {
+                errorMsg.textContent = "Неверный email или пароль";
+                errorMsg.style.display = 'block';
+            }
+        } catch (error) {
+            errorMsg.textContent = "Ошибка соединения с сервером";
+            errorMsg.style.display = 'block';
+        }
+    });
+</script>
+{% endblock %}

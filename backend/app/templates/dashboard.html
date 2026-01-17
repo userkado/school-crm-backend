@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Al-Xorazmiy CRM</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --sidebar-width: 260px; --primary-color: #4f46e5; --bg-light: #f3f4f6; --header-height: 60px; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
+        
+        /* SIDEBAR */
+        .sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; left: 0; top: 0; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; z-index: 1050; transition: transform 0.3s ease; }
+        .brand { padding: 20px; font-size: 1.2rem; font-weight: 800; color: var(--primary-color); border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
+        .menu-items { padding: 15px; flex-grow: 1; overflow-y: auto; }
+        .menu-btn { width: 100%; text-align: left; padding: 12px; margin-bottom: 5px; border: none; background: transparent; border-radius: 8px; color: #4b5563; font-weight: 500; display: flex; align-items: center; gap: 12px; }
+        .menu-btn:hover { background: #f3f4f6; color: var(--primary-color); }
+        .menu-btn.active { background: #eef2ff; color: var(--primary-color); font-weight: 600; }
+        .user-profile { padding: 15px; border-top: 1px solid #e5e7eb; background: #f9fafb; }
+
+        /* CONTENT */
+        .main-content { margin-left: var(--sidebar-width); padding: 30px; min-height: 100vh; transition: margin-left 0.3s ease; }
+        .mobile-header { display: none; height: var(--header-height); background: white; border-bottom: 1px solid #e5e7eb; align-items: center; justify-content: space-between; padding: 0 20px; position: fixed; top: 0; left: 0; width: 100%; z-index: 1040; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1045; opacity: 0; transition: opacity 0.3s; }
+        .overlay.active { display: block; opacity: 1; }
+
+        /* LANG SWITCHER */
+        .lang-switch { display: flex; gap: 5px; margin-bottom: 15px; padding: 0 15px; }
+        .lang-btn { flex: 1; border: 1px solid #e5e7eb; background: white; padding: 5px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: #6b7280; cursor: pointer; }
+        .lang-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+        /* MOBILE */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); box-shadow: 5px 0 15px rgba(0,0,0,0.2); }
+            .mobile-header { display: flex; }
+            .main-content { margin-left: 0; padding: 15px; padding-top: calc(var(--header-height) + 15px); }
+        }
+
+        /* CARDS & TABLES */
+        .card-custom { background: white; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-custom { width: 100%; min-width: 600px; }
+        .table-custom th { background: #f9fafb; padding: 12px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; color: #6b7280; vertical-align: middle; }
+        .table-custom td { padding: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+        
+        .schedule-grid td { height: 100px; min-width: 140px; vertical-align: top; padding: 5px; }
+        .lesson-card { background: #e0e7ff; color: #3730a3; padding: 5px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 4px; border-left: 3px solid var(--primary-color); cursor: pointer; }
+        .btn-add-lesson { width: 100%; height: 100%; border: 2px dashed #ccc; background: transparent; color: #ccc; font-size: 24px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <div class="mobile-header">
+        <div class="fw-bold fs-5 text-primary" data-key="school_name_short">Al-Xorazmiy</div>
+        <button class="btn btn-light border" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+    </div>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <span data-key="school_name">Al-Xorazmiy Maktabi</span>
+            <button class="btn btn-sm btn-light d-md-none" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="lang-switch mt-3">
+            <button class="lang-btn" onclick="setLang('uz')" id="btn-uz">O'zbek</button>
+            <button class="lang-btn" onclick="setLang('ru')" id="btn-ru">Русский</button>
+        </div>
+
+        <div class="menu-items">
+            <div id="menu-admin" style="display: none;">
+                <small class="text-muted fw-bold text-uppercase d-block px-2 mb-2" style="font-size:0.7rem" data-key="menu_manage">Boshqaruv</small>
+                <button onclick="navTo('adm-schedule')" class="menu-btn active" id="btn-adm-schedule"><i class="fas fa-calendar-alt text-primary"></i> <span data-key="menu_grid">Dars jadvali</span></button>
+                <button onclick="navTo('adm-students')" class="menu-btn" id="btn-adm-students"><i class="fas fa-user-graduate text-success"></i> <span data-key="menu_students">O'quvchilar</span></button>
+                <button onclick="navTo('adm-users')" class="menu-btn" id="btn-adm-users"><i class="fas fa-chalkboard-teacher text-warning"></i> <span data-key="menu_teachers">O'qituvchilar</span></button>
+                <button onclick="navTo('adm-reports')" class="menu-btn" id="btn-adm-reports"><i class="fas fa-chart-pie text-info"></i> <span data-key="menu_reports">Hisobotlar</span></button>
+                <button onclick="navTo('adm-settings')" class="menu-btn" id="btn-adm-settings"><i class="fas fa-cogs text-secondary"></i> <span data-key="menu_settings">Sozlamalar</span></button>
+            </div>
+
+            <div id="menu-teacher" style="display: none;">
+                <small class="text-muted fw-bold text-uppercase d-block px-2 mb-2" style="font-size:0.7rem" data-key="menu_my_lessons">Mening darslarim</small>
+                <button onclick="loadSchedule(true); closeSidebar()" class="menu-btn active" id="btn-teach-today"><i class="fas fa-clock text-primary"></i> <span data-key="menu_today">Bugun</span></button>
+                <button onclick="loadSchedule(false); closeSidebar()" class="menu-btn" id="btn-teach-week"><i class="fas fa-calendar-week text-primary"></i> <span data-key="menu_week">Hafta</span></button>
+                <hr class="my-3 mx-2">
+                <small class="text-muted fw-bold text-uppercase d-block px-2 mb-2" style="font-size:0.7rem" data-key="menu_journal">Jurnal</small>
+                <button onclick="navTo('teacher-big-journal')" class="menu-btn" id="btn-teach-journal"><i class="fas fa-book-open text-success"></i> <span data-key="menu_big_journal">Katta Jurnal</span></button>
+                <button onclick="navTo('adm-reports')" class="menu-btn" id="btn-teach-reports"><i class="fas fa-chart-bar text-info"></i> <span data-key="menu_performance">O'zlashtirish</span></button>
+            </div>
+        </div>
+
+        <div class="user-profile">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 35px; height: 35px;" id="user-avatar">U</div>
+                <div class="overflow-hidden">
+                    <div class="fw-bold text-truncate" id="greeting-msg" style="font-size: 0.9rem;">User</div>
+                    <div class="text-muted small" id="user-role">Role</div>
+                </div>
+            </div>
+            <div class="row g-2">
+                <div class="col-6"><button onclick="new bootstrap.Modal(document.getElementById('changePassModal')).show()" class="btn btn-sm btn-outline-secondary w-100" data-key="btn_pass">Parol</button></div>
+                <div class="col-6"><button onclick="logout()" class="btn btn-sm btn-outline-danger w-100" data-key="btn_logout">Chiqish</button></div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        
+        <div id="section-schedule" style="display: none;">
+            <h4 class="fw-bold mb-3" data-key="title_my_schedule">Mening darslarim</h4>
+            <div class="card-custom">
+                <div class="table-responsive">
+                    <table class="table-custom table table-hover">
+                        <thead><tr><th data-key="col_time">Vaqt</th><th data-key="col_class">Sinf</th><th data-key="col_subject">Fan</th><th data-key="col_room">Xona</th><th></th></tr></thead>
+                        <tbody id="schedule-list"></tbody>
+                    </table>
+                </div>
+                <div id="no-lessons-msg" class="text-center py-4 text-muted" style="display:none;" data-key="msg_no_lessons">Darslar yo'q</div>
+            </div>
+        </div>
+
+        <div id="section-journal" style="display: none;">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-light border me-3" onclick="navTo('schedule')"><i class="fas fa-arrow-left"></i></button>
+                <h4 class="m-0 fw-bold" id="journal-title">Dars</h4>
+            </div>
+            <div class="card-custom">
+                <div class="d-flex gap-2 mb-3 overflow-auto">
+                    <button class="btn btn-primary" id="tab-grades" onclick="switchTab('grades')" data-key="tab_grades">Baholar</button>
+                    <button class="btn btn-light border" id="tab-attendance" onclick="switchTab('attendance')" data-key="tab_attendance">Davomat</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-custom table">
+                        <tbody id="journal-students-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-teacher-big-journal" style="display: none;">
+            <h4 class="fw-bold mb-3" data-key="title_big_journal">Katta Jurnal</h4>
+            <div class="card-custom">
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-md-3"><select id="big-journal-class" class="form-select class-dropdown"></select></div>
+                    <div class="col-12 col-md-3"><select id="big-journal-subject" class="form-select subject-dropdown"></select></div>
+                    <div class="col-6 col-md-3"><select id="big-journal-period" class="form-select"><option value="1 Четверть">1-Chorak</option><option value="2 Четверть">2-Chorak</option><option value="3 Четверть">3-Chorak</option><option value="4 Четверть">4-Chorak</option></select></div>
+                    <div class="col-6 col-md-3"><button onclick="loadBigJournal()" class="btn btn-primary w-100" data-key="btn_load">Yuklash</button></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered text-center align-middle big-journal-table" style="font-size: 0.9rem;">
+                        <thead class="table-light"><tr id="big-journal-head"></tr></thead>
+                        <tbody id="big-journal-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-adm-students" style="display: none;">
+            <h4 class="fw-bold mb-3" data-key="title_students">O'quvchilar</h4>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="card-custom h-100">
+                        <div class="d-flex gap-2 mb-3">
+                            <select id="filter-class-select" class="form-select class-dropdown" onchange="loadAdminStudents()"></select>
+                            <button onclick="loadAdminStudents()" class="btn btn-primary"><i class="fas fa-sync"></i></button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table-custom table table-hover"><thead><tr><th data-key="col_fio">F.I.O</th><th data-key="col_class">Sinf</th><th></th></tr></thead><tbody id="admin-students-list"></tbody></table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-custom bg-primary text-white mb-3">
+                        <h6 class="fw-bold"><i class="fas fa-plus"></i> <span data-key="title_add">Qo'shish</span></h6>
+                        <input id="new-name" class="form-control form-control-sm mb-2" placeholder="F.I.O">
+                        <select id="new-class-select" class="form-select form-select-sm mb-2 class-dropdown"></select>
+                        <button onclick="addOneStudent()" class="btn btn-light btn-sm w-100 text-primary fw-bold" data-key="btn_save">Saqlash</button>
+                    </div>
+                    <div class="card-custom">
+                        <h6 class="fw-bold" data-key="title_import">Import Excel</h6>
+                        <select id="import-class-select" class="form-select form-select-sm mb-2 class-dropdown"></select>
+                        <input type="file" id="excel-file" class="form-control form-control-sm mb-2">
+                        <button onclick="uploadExcel()" class="btn btn-success btn-sm w-100" data-key="btn_upload">Yuklash</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-adm-users" style="display: none;">
+            <h4 class="fw-bold mb-3" data-key="title_users">Foydalanuvchilar</h4>
+            <div class="card-custom">
+                <div class="bg-light p-3 rounded mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-4"><input id="new-user-email" class="form-control form-control-sm" placeholder="Email"></div>
+                        <div class="col-md-4"><input type="password" id="new-user-pass" class="form-control form-control-sm" placeholder="Parol"></div>
+                        <div class="col-md-3"><select id="new-user-role" class="form-select form-select-sm"><option value="TEACHER">O'qituvchi</option><option value="ADMIN">Admin</option></select></div>
+                        <div class="col-md-1"><button onclick="createNewUser()" class="btn btn-primary btn-sm w-100">+</button></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-custom table"><thead><tr><th>Email</th><th data-key="col_role">Rol</th><th>Status</th></tr></thead><tbody id="users-list"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-adm-schedule" style="display: none;">
+            <h4 class="fw-bold mb-3" data-key="title_grid_editor">Jadval muharriri</h4>
+            <div class="card-custom p-2">
+                <div class="d-flex gap-2 mb-3">
+                    <select id="editor-teacher-select" class="form-select" onchange="loadEditorGrid()"></select>
+                    <button onclick="loadEditorGrid()" class="btn btn-primary"><i class="fas fa-sync"></i></button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered text-center schedule-grid mb-0">
+                        <thead class="table-light"><tr><th>#</th><th data-key="day_mon">Du</th><th data-key="day_tue">Se</th><th data-key="day_wed">Ch</th><th data-key="day_thu">Pa</th><th data-key="day_fri">Ju</th><th data-key="day_sat">Sh</th></tr></thead>
+                        <tbody id="schedule-grid-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-adm-reports" style="display: none;">
+            <h4 class="fw-bold mb-3" data-key="title_reports">Hisobotlar</h4>
+            <div class="card-custom">
+                <div class="row g-2 mb-3 bg-light p-2 rounded mx-0">
+                    <div class="col-6 col-md-3"><select id="report-class-select" class="form-select form-select-sm class-dropdown"></select></div>
+                    <div class="col-6 col-md-3"><select id="report-type-select" class="form-select form-select-sm"><option value="grades">Baholar</option><option value="attendance">Davomat</option></select></div>
+                    <div class="col-6 col-md-2"><input type="date" id="report-start" class="form-control form-control-sm"></div>
+                    <div class="col-6 col-md-2"><input type="date" id="report-end" class="form-control form-control-sm"></div>
+                    <div class="col-12 col-md-2 d-flex gap-1">
+                        <button onclick="loadReport(false)" class="btn btn-primary btn-sm flex-grow-1">Show</button>
+                        <button onclick="loadReport(true)" class="btn btn-success btn-sm flex-grow-1">Excel</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <div id="report-result-container" style="display:none">
+                        <table class="table-custom table text-center"><thead class="table-light"><tr id="report-table-head"></tr></thead><tbody id="report-table-body"></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-adm-settings" style="display: none;">
+            <h4 class="fw-bold mb-3" data-key="title_settings">Sozlamalar</h4>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-3" data-key="sub_bells">Qo'ng'iroqlar</h6>
+                        <ul class="list-group list-group-flush mb-3" id="bells-list"></ul>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">#</span><input type="number" id="new-bell-order" class="form-control" placeholder="1">
+                            <input type="time" id="new-bell-start" class="form-control"><input type="time" id="new-bell-end" class="form-control">
+                            <button onclick="addBell()" class="btn btn-primary">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-3" data-key="sub_dirs">Ma'lumotnomalar</h6>
+                        <div class="input-group input-group-sm mb-2"><input id="new-class-name" class="form-control" placeholder="10-A"><button onclick="addClass()" class="btn btn-info text-white">+</button></div>
+                        <div class="input-group input-group-sm"><input id="new-subject-name" class="form-control" placeholder="Matematika"><button onclick="addSubject()" class="btn btn-danger text-white">+</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="modal fade" id="universalModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title" id="modalTitle">...</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body" id="modalBody">...</div>
+          <div class="modal-footer pt-0 border-0" id="modalFooter"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="change-pass-modal" class="d-none">
+        <input type="password" id="cp-old" class="form-control mb-2" placeholder="Eski parol">
+        <input type="password" id="cp-new" class="form-control" placeholder="Yangi parol">
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <button onclick="uniModal.hide()" class="btn btn-secondary btn-sm">Bekor qilish</button>
+            <button onclick="submitPasswordChange()" class="btn btn-success btn-sm">Saqlash</button>
+        </div>
+    </div>
+
+    <div id="add-lesson-modal" class="d-none">
+        <p class="text-muted small" id="modal-lesson-info"></p>
+        <input type="hidden" id="modal-day"><input type="hidden" id="modal-start"><input type="hidden" id="modal-end">
+        <label class="small mt-2" data-key="col_class">Sinf</label><select id="modal-class" class="form-select mb-2 class-dropdown"></select>
+        <label class="small" data-key="col_subject">Fan</label><select id="modal-subject" class="form-select mb-2 subject-dropdown"></select>
+        <label class="small" data-key="col_room">Xona</label><input type="text" id="modal-room" class="form-control">
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <button onclick="uniModal.hide()" class="btn btn-secondary">Bekor</button>
+            <button onclick="saveLessonFromModal()" class="btn btn-primary">Saqlash</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = "/login";
+        const uniModal = new bootstrap.Modal(document.getElementById('universalModal'));
+
+        // === LOCALIZATION ===
+        let currentLang = localStorage.getItem('lang') || 'uz';
+        const translations = {
+            uz: {
+                school_name: "Al-Xorazmiy Maktabi", school_name_short: "Al-Xorazmiy",
+                menu_manage: "BOSHQARUV", menu_grid: "Dars jadvali", menu_students: "O'quvchilar", menu_teachers: "O'qituvchilar", menu_reports: "Hisobotlar", menu_settings: "Sozlamalar",
+                menu_my_lessons: "MENING DARSLARIM", menu_today: "Bugun", menu_week: "Hafta",
+                menu_journal: "JURNAL", menu_big_journal: "Katta Jurnal", menu_performance: "O'zlashtirish",
+                btn_pass: "Parol", btn_logout: "Chiqish",
+                title_my_schedule: "Mening darslarim", msg_no_lessons: "Darslar yo'q",
+                col_time: "Vaqt", col_class: "Sinf", col_subject: "Fan", col_room: "Xona",
+                tab_grades: "Baholar", tab_attendance: "Davomat",
+                title_big_journal: "Choraklik Jurnal", btn_load: "Yuklash",
+                title_students: "O'quvchilar", col_fio: "F.I.O", title_add: "Qo'shish", btn_save: "Saqlash", title_import: "Import Excel", btn_upload: "Yuklash",
+                title_users: "Foydalanuvchilar", col_role: "Rol",
+                title_grid_editor: "Jadval muharriri", day_mon:"Du", day_tue:"Se", day_wed:"Ch", day_thu:"Pa", day_fri:"Ju", day_sat:"Sh",
+                title_reports: "Hisobotlar", title_settings: "Sozlamalar", sub_bells: "Qo'ng'iroqlar", sub_dirs: "Ma'lumotnomalar",
+                sel_teacher: "-- O'qituvchini tanlang --", sel_class: "-- Sinfni tanlang --", sel_subj: "-- Fanni tanlang --"
+            },
+            ru: {
+                school_name: "Школа Аль-Хорезми", school_name_short: "Аль-Хорезми",
+                menu_manage: "УПРАВЛЕНИЕ", menu_grid: "Сетка расписания", menu_students: "Ученики", menu_teachers: "Учителя", menu_reports: "Отчеты", menu_settings: "Настройки",
+                menu_my_lessons: "МОИ УРОКИ", menu_today: "Сегодня", menu_week: "Неделя",
+                menu_journal: "ЖУРНАЛ", menu_big_journal: "Сводный Журнал", menu_performance: "Успеваемость",
+                btn_pass: "Пароль", btn_logout: "Выйти",
+                title_my_schedule: "Моё расписание", msg_no_lessons: "Нет уроков",
+                col_time: "Время", col_class: "Класс", col_subject: "Предмет", col_room: "Каб.",
+                tab_grades: "Оценки", tab_attendance: "Посещаемость",
+                title_big_journal: "Сводный журнал", btn_load: "Загрузить",
+                title_students: "Ученики", col_fio: "ФИО", title_add: "Добавить", btn_save: "Сохранить", title_import: "Импорт Excel", btn_upload: "Загрузить",
+                title_users: "Пользователи", col_role: "Роль",
+                title_grid_editor: "Редактор сетки", day_mon:"Пн", day_tue:"Вт", day_wed:"Ср", day_thu:"Чт", day_fri:"Пт", day_sat:"Сб",
+                title_reports: "Отчеты", title_settings: "Настройки", sub_bells: "Звонки", sub_dirs: "Справочники",
+                sel_teacher: "-- Выберите учителя --", sel_class: "-- Выберите класс --", sel_subj: "-- Выберите предмет --"
+            }
+        };
+
+        function setLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('lang', lang);
+            document.getElementById('btn-uz').classList.toggle('active', lang==='uz');
+            document.getElementById('btn-ru').classList.toggle('active', lang==='ru');
+            
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if(translations[lang][key]) el.innerText = translations[lang][key];
+            });
+            // Обновить плейсхолдеры в списках
+            loadSettingsData(); 
+        }
+
+        // Глобальные
+        let userRole = "";
+        let classesList = [], subjectsList = [], bellsList = [], teachersList = [];
+        const daysMap = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+        let currentStudents = [], currentSubjectId = null, currentMode = 'grades';
+
+        // --- ИНТЕРФЕЙС ---
+        function toggleSidebar(forceOpen) {
+            const el = document.getElementById('sidebar');
+            const ov = document.getElementById('sidebar-overlay');
+            if(forceOpen === true) { el.classList.add('active'); ov.classList.add('active'); }
+            else if(forceOpen === false) { el.classList.remove('active'); ov.classList.remove('active'); }
+            else { el.classList.toggle('active'); ov.classList.toggle('active'); }
+        }
+        function closeSidebar() { toggleSidebar(false); }
+        function navTo(id) { showSection(id); if (window.innerWidth <= 768) closeSidebar(); }
+
+        function showSection(id) {
+            document.querySelectorAll('main > div').forEach(el => el.style.display = 'none');
+            const target = document.getElementById('section-' + id);
+            if (target) target.style.display = 'block';
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('btn-' + (id==='schedule'?'teach-today':id));
+            if(btn) btn.classList.add('active');
+            if(id === 'adm-users') loadUsers();
+            if(id === 'adm-students') loadAdminStudents();
+            if(id === 'adm-schedule') loadSettingsData();
+        }
+
+        // --- INIT ---
+        async function init() {
+            setLang(currentLang);
+            try {
+                const r = await fetch('/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+                if(!r.ok) { window.location.href = "/login"; return; }
+                const u = await r.json();
+                userRole = u.role;
+                document.getElementById('greeting-msg').innerText = u.email.split('@')[0];
+                document.getElementById('user-role').innerText = u.role === 'ADMIN' ? 'Admin' : 'Teacher';
+                document.getElementById('user-avatar').innerText = u.email[0].toUpperCase();
+
+                setDefaultDates();
+                await loadSettingsData();
+
+                if (u.role === 'ADMIN') {
+                    document.getElementById('menu-admin').style.display = 'block';
+                    showSection('adm-schedule');
+                } else {
+                    document.getElementById('menu-teacher').style.display = 'block';
+                    loadSchedule(true);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadSettingsData() {
+            const h = { headers: { 'Authorization': 'Bearer ' + token } };
+            const rb = await fetch('/settings/bells/', h); if(rb.ok) { bellsList = await rb.json(); renderBells(); }
+            const rc = await fetch('/classes/', h); if(rc.ok) { classesList = await rc.json(); fillDropdowns('class-dropdown', classesList); }
+            const rs = await fetch('/settings/subjects/', h); if(rs.ok) { subjectsList = await rs.json(); fillDropdowns('subject-dropdown', subjectsList); }
+            if(userRole === 'ADMIN') {
+                const ru = await fetch('/auth/users', h);
+                if(ru.ok) {
+                    const us = await ru.json();
+                    teachersList = us.filter(u => u.role === 'TEACHER');
+                    const sel = document.getElementById('editor-teacher-select');
+                    if(sel) { 
+                        const ph = translations[currentLang].sel_teacher;
+                        // Сохраняем текущее значение если есть
+                        const val = sel.value;
+                        sel.innerHTML=`<option value="">${ph}</option>`; 
+                        teachersList.forEach(t=>{sel.innerHTML+=`<option value="${t.id}">${t.email}</option>`}); 
+                        if(val) sel.value = val;
+                    }
+                }
+            }
+        }
+
+        // --- УЧИТЕЛЬ ---
+        async function loadSchedule(today) {
+            showSection('schedule');
+            document.getElementById('btn-teach-week').classList.remove('active'); document.getElementById(today ? 'btn-teach-today' : 'btn-teach-week').classList.add('active');
+            const dname = daysMap[new Date().getDay()===0?6:new Date().getDay()-1];
+            let url = '/schedule/'; if(today) url+=`?day=${dname}`;
+            const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } }); const lessons = await res.json();
+            const tb = document.getElementById('schedule-list'); tb.innerHTML='';
+            if(lessons.length===0) document.getElementById('no-lessons-msg').style.display='block';
+            else {
+                document.getElementById('no-lessons-msg').style.display='none';
+                lessons.forEach(l => { const isToday = l.day_of_week === dname; tb.innerHTML += `<tr><td><b>${l.start_time}</b><br><small>${l.day_of_week}</small></td><td><span class="badge bg-light text-dark border">${l.class_group_name}</span></td><td class="text-primary fw-bold">${l.subject_name}</td><td>${l.room_number}</td><td><button class="btn btn-sm ${isToday?'btn-primary':'btn-secondary disabled'}" ${isToday?'':'disabled'} onclick="openJournal(${l.class_group_id}, '${l.class_group_name}', ${l.subject_id}, '${l.subject_name}')">Journal</button></td></tr>`; });
+            }
+        }
+        async function openJournal(cid, cname, sid, sname) { currentSubjectId=sid; document.getElementById('journal-title').innerText = `${cname} | ${sname}`; navTo('journal'); switchTab('grades'); const res = await fetch(`/students/?class_id=${cid}`,{headers:{'Authorization':'Bearer '+token}}); currentStudents = await res.json(); renderJournal(); }
+        function switchTab(m) { currentMode=m; document.getElementById('tab-grades').className = m==='grades'?'btn btn-primary':'btn btn-light border'; document.getElementById('tab-attendance').className = m==='attendance'?'btn btn-primary':'btn btn-light border'; renderJournal(); }
+        function renderJournal() {
+            const tb=document.getElementById('journal-students-list'); tb.innerHTML='';
+            currentStudents.forEach(s => {
+                const acts = currentMode==='grades' ? 
+                    `<div class="btn-group btn-group-sm"><button onclick="sendD(${s.id},5,this)" class="btn btn-outline-success">5</button><button onclick="sendD(${s.id},4,this)" class="btn btn-outline-primary">4</button><button onclick="sendD(${s.id},3,this)" class="btn btn-outline-warning">3</button><button onclick="sendD(${s.id},2,this)" class="btn btn-outline-danger">2</button></div>` : 
+                    `<div class="btn-group btn-group-sm"><button onclick="sendD(${s.id},'PRESENT',this)" class="btn btn-outline-success"><i class="fas fa-check"></i></button><button onclick="sendD(${s.id},'ABSENT',this)" class="btn btn-outline-danger">N/B</button></div>`;
+                tb.innerHTML+=`<tr><td class="fw-bold">${s.full_name}</td><td class="text-end">${acts}</td></tr>`;
+            });
+        }
+        async function sendD(sid, val, btn) {
+            const d=new Date().toISOString().split('T')[0]; const u=currentMode==='grades'?'/grades/':'/attendance/';
+            const b=currentMode==='grades'?{value:val, student_id:sid, subject_id:currentSubjectId, date:d}:{status:val, student_id:sid, date:d};
+            btn.parentElement.querySelectorAll('.btn').forEach(x=>x.classList.remove('active')); btn.classList.add('active');
+            await fetch(u,{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify(b)});
+        }
+
+        async function loadBigJournal() {
+            const cid=document.getElementById('big-journal-class').value; const sid=document.getElementById('big-journal-subject').value; const per=document.getElementById('big-journal-period').value;
+            if(!cid||!sid) return alert("Select class & subject");
+            const res = await fetch(`/grades/matrix?class_id=${cid}&subject_id=${sid}&period_name=${per}`, { headers: { 'Authorization': 'Bearer ' + token } }); const data = await res.json();
+            const th=document.getElementById('big-journal-head'); th.innerHTML='<th class="text-start" style="min-width:150px">FIO</th>';
+            data.dates.forEach(d => { th.innerHTML+=`<th style="min-width:40px;font-size:0.8em">${d.split('-')[2]}.${d.split('-')[1]}</th>`; });
+            th.innerHTML+=`<th class="bg-light text-primary">Av</th><th class="bg-warning bg-opacity-10">Res</th>`;
+            const tb=document.getElementById('big-journal-body'); tb.innerHTML='';
+            data.students.forEach(s => {
+                let r=`<td class="text-start fw-bold">${s.full_name}</td>`;
+                data.dates.forEach(d => { const g=s.grades[d]||''; let c=g==5?'text-success':(g==2?'text-danger':'text-muted'); r+=`<td class="${c} fw-bold">${g}</td>`; });
+                r+=`<td class="fw-bold bg-light ${s.average<3&&s.average>0?'text-danger':'text-primary'}">${s.average}</td>`;
+                r+=`<td class="bg-warning bg-opacity-10 p-0"><input value="${s.final_grade||''}" onchange="saveFinalGrade(${s.student_id},this.value)" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"></td>`;
+                tb.innerHTML+=`<tr>${r}</tr>`;
+            });
+        }
+        async function saveFinalGrade(sid,val) { await fetch('/grades/final', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ student_id: sid, subject_id: document.getElementById('big-journal-subject').value, period_name: document.getElementById('big-journal-period').value, value: val }) }); }
+
+        // --- ADMIN ---
+        async function loadEditorGrid() {
+            const tid = document.getElementById('editor-teacher-select').value; const tb = document.getElementById('schedule-grid-body'); tb.innerHTML=''; if (!tid) return;
+            const res = await fetch(`/schedule/?teacher_id=${tid}`, { headers: { 'Authorization': 'Bearer ' + token } }); const lessons = await res.json();
+            bellsList.forEach(bell => {
+                let row = `<tr><td class="bg-light fw-bold">${bell.order}<br><small>${bell.start_time}</small></td>`;
+                daysMap.forEach(day => {
+                    const l = lessons.find(x => x.day_of_week === day && x.start_time === bell.start_time);
+                    if (l) row += `<td class="schedule-cell"><div class="lesson-card" onclick="deleteLesson(${l.id})"><strong>${l.subject_name}</strong><br>${l.class_group_name}<br><small>Room: ${l.room_number}</small></div></td>`;
+                    else row += `<td class="schedule-cell"><button class="btn-add-lesson" onclick="prepAddLesson('${day}','${bell.start_time}','${bell.end_time}')">+</button></td>`;
+                });
+                row += '</tr>'; tb.innerHTML += row;
+            });
+        }
+        function prepAddLesson(d, s, e) {
+            showModal('Add Lesson', 'add-lesson-modal');
+            setTimeout(() => { const mb=document.getElementById('modalBody'); mb.querySelector('#modal-day').value=d; mb.querySelector('#modal-start').value=s; mb.querySelector('#modal-end').value=e; mb.querySelector('#modal-lesson-info').innerText = `${d}, ${s} - ${e}`; }, 100);
+        }
+        window.saveLessonFromModal = async function() {
+            const mb = document.getElementById('modalBody');
+            const tid = document.getElementById('editor-teacher-select').value;
+            const body = { teacher_id: tid, day_of_week: mb.querySelector('#modal-day').value, start_time: mb.querySelector('#modal-start').value, end_time: mb.querySelector('#modal-end').value, class_group_id: mb.querySelector('#modal-class').value, subject_id: mb.querySelector('#modal-subject').value, room_number: mb.querySelector('#modal-room').value };
+            const res = await fetch('/schedule/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify(body) });
+            if (res.ok) { uniModal.hide(); loadEditorGrid(); } else { const err = await res.json(); alert(err.detail); }
+        }
+        async function deleteLesson(id) { if(confirm("Delete?")) { await fetch(`/schedule/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } }); loadEditorGrid(); } }
+
+        // --- HELPERS (With Clear Logic) ---
+        function fillDropdowns(cls, list) { 
+            const ph_cls = translations[currentLang].sel_class;
+            const ph_subj = translations[currentLang].sel_subj;
+            document.querySelectorAll('.'+cls).forEach(s => { 
+                const isSubj = s.classList.contains('subject-dropdown');
+                const val = s.value; // Keep selection
+                s.innerHTML=`<option value="">${isSubj ? ph_subj : ph_cls}</option>`; 
+                list.forEach(i=>{s.innerHTML+=`<option value="${i.id}">${i.name}</option>`}); 
+                if(val) s.value = val;
+            }); 
+        }
+        function renderBells() { const l=document.getElementById('bells-list'); l.innerHTML=''; bellsList.forEach(b=>{ l.innerHTML+=`<li class="list-group-item d-flex justify-content-between border-0 bg-light mb-1 rounded"><span><span class="badge bg-primary me-2">${b.order}</span> ${b.start_time} - ${b.end_time}</span><button onclick="delBell(${b.id})" class="btn btn-sm text-danger"><i class="fas fa-trash"></i></button></li>`; }); }
+        
+        // --- ADD FUNCTIONS WITH AUTO-CLEAR ---
+        async function addBell() { 
+            const o = document.getElementById('new-bell-order'); const s = document.getElementById('new-bell-start'); const e = document.getElementById('new-bell-end');
+            await fetch('/settings/bells/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({order:o.value, start_time:s.value, end_time:e.value})}); 
+            o.value=''; s.value=''; e.value=''; loadSettingsData(); 
+        }
+        async function delBell(id) { if(confirm("Del?")) { await fetch(`/settings/bells/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}); loadSettingsData(); } }
+        async function addClass() { const i=document.getElementById('new-class-name'); await fetch('/settings/classes/?name='+i.value,{method:'POST',headers:{'Authorization':'Bearer '+token}}); i.value=''; loadSettingsData(); }
+        async function addSubject() { const i=document.getElementById('new-subject-name'); await fetch('/settings/subjects/?name='+i.value,{method:'POST',headers:{'Authorization':'Bearer '+token}}); i.value=''; loadSettingsData(); }
+        async function loadAdminStudents() { const cid=document.getElementById('filter-class-select').value; let u='/students/'; if(cid) u+=`?class_id=${cid}`; const r=await fetch(u,{headers:{'Authorization':'Bearer '+token}}); const d=await r.json(); const tb=document.getElementById('admin-students-list'); tb.innerHTML=''; d.forEach(s=>{ const c=classesList.find(x=>x.id==s.class_group_id)?.name||'-'; tb.innerHTML+=`<tr><td>${s.full_name}</td><td><span class="badge bg-light text-dark border">${c}</span></td><td></td></tr>`; }); }
+        
+        async function addOneStudent() { 
+            const n=document.getElementById('new-name'); const c=document.getElementById('new-class-select');
+            if(!n.value || !c.value) return alert("Fill fields");
+            await fetch('/students/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({full_name:n.value, class_group_id:c.value})}); 
+            n.value=''; c.value=''; loadAdminStudents(); 
+        }
+        async function uploadExcel() { const cid=document.getElementById('import-class-select').value; const f=document.getElementById('excel-file'); if(!cid||!f.files[0]) return alert("Err"); const fd=new FormData(); fd.append('file',f.files[0]); await fetch(`/students/upload?class_id=${cid}`,{method:'POST',headers:{'Authorization':'Bearer '+token},body:fd}); f.value=''; loadAdminStudents(); alert("OK"); }
+        async function loadUsers() { const r=await fetch('/auth/users',{headers:{'Authorization':'Bearer '+token}}); const d=await r.json(); const tb=document.getElementById('users-list'); tb.innerHTML=''; d.forEach(u=>{ tb.innerHTML+=`<tr><td>${u.email}</td><td><span class="badge ${u.role==='ADMIN'?'bg-danger':'bg-primary'}">${u.role}</span></td><td>${u.is_active?'<i class="fas fa-check text-success"></i>':'<i class="fas fa-times text-danger"></i>'}</td></tr>`; }); }
+        
+        async function createNewUser() { 
+            const e=document.getElementById('new-user-email'); const p=document.getElementById('new-user-pass'); const r=document.getElementById('new-user-role');
+            if(!e.value || !p.value) return alert("Fill all fields");
+            await fetch('/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e.value, password:p.value, role:r.value})}); 
+            e.value=''; p.value=''; loadUsers(); loadSettingsData(); 
+        }
+
+        // --- MODAL UTILS ---
+        function showModal(title, contentId) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = document.getElementById(contentId).innerHTML;
+            uniModal.show();
+        }
+        // Change Pass logic
+        document.getElementById('change-pass-modal').onclick = function(e) { if(e.target.innerText === 'Saqlash' || e.target.innerText === 'Сохранить') submitPasswordChange(); } 
+        async function submitPasswordChange() {
+            const body = document.getElementById('modalBody');
+            const o = body.querySelector('#cp-old').value; const n = body.querySelector('#cp-new').value;
+            const res = await fetch('/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ old_password: o, new_password: n }) });
+            if(res.ok) { alert("OK"); uniModal.hide(); } else alert("Error");
+        }
+
+        function setDefaultDates() { const d=new Date(); document.getElementById('report-start').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]; document.getElementById('report-end').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]; }
+        async function loadReport(isExport) {
+            const cid = document.getElementById('report-class-select').value; const type = document.getElementById('report-type-select').value; const start = document.getElementById('report-start').value; const end = document.getElementById('report-end').value;
+            if (!cid || !start || !end) return alert("Select data");
+            if (isExport) {
+                const url = `/reports/export?class_id=${cid}&report_type=${type}&start_date=${start}&end_date=${end}`;
+                try { const res=await fetch(url,{headers:{'Authorization':'Bearer '+token}}); if(res.ok){ const b=await res.blob(); const l=document.createElement('a'); l.href=window.URL.createObjectURL(b); l.download=`Report_${type}.xlsx`; document.body.appendChild(l); l.click(); l.remove(); } } catch(e){} return;
+            }
+            const res = await fetch(`/reports/view?class_id=${cid}&report_type=${type}&start_date=${start}&end_date=${end}`,{headers:{'Authorization':'Bearer '+token}});
+            const data = await res.json();
+            const th = document.getElementById('report-table-head'); const tb = document.getElementById('report-table-body'); tb.innerHTML=''; th.innerHTML='<th>FIO</th>';
+            if(type==='grades') { th.innerHTML+='<th>Av</th><th>Count</th>'; data.forEach(r=>{ tb.innerHTML+=`<tr><td class="text-start">${r.full_name}</td><td class="${r.value<3&&r.value>0?'text-danger fw-bold':''}">${r.value||'-'}</td><td>${r.count}</td></tr>`; }); }
+            else { th.innerHTML+='<th>N/B</th><th>Late</th>'; data.forEach(r=>{ tb.innerHTML+=`<tr><td class="text-start">${r.full_name}</td><td class="${r.absent>10?'bg-warning':''}">${r.absent}</td><td>${r.late}</td></tr>`; }); }
+            document.getElementById('report-result-container').style.display='block';
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href="/"; }
+        init();
+    </script>
+</body>
+</html>
