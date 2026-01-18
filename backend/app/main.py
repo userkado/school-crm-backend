@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 # Импорты для базы данных
 from app.db.session import engine
@@ -32,6 +33,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+static_dir = "app/static"
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
 
 # --- 3. СТАТИКА И ШАБЛОНЫ ---
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
