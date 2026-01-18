@@ -12,3 +12,11 @@ venv/
 # IDE
 .idea/
 .vscode/
+
+
+__pycache__/
+*.pyc
+school.db
+.env
+.DS_Store
+venv/
