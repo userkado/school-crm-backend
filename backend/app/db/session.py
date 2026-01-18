@@ -2,28 +2,34 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-# 1. Получаем ссылку. Если её нет (None), используем заглушку для SQLite
-DATABASE_URL = os.getenv("DATABASE_URL")
+# 1. Получаем переменную
+raw_url = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    # Если на сервере забыли добавить переменную, используем локальную базу,
-    # чтобы программа хотя бы запустилась и выдала ошибку понятнее, или работала локально.
+if not raw_url:
     print("WARNING: DATABASE_URL not found, using sqlite.")
     DATABASE_URL = "sqlite+aiosqlite:///./school.db"
-
-# 2. Исправляем "postgres://" на "postgresql+asyncpg://" для драйвера
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-elif DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-
-# 3. Настройки движка
-connect_args = {}
-if "sqlite" in DATABASE_URL:
     connect_args = {"check_same_thread": False}
+else:
+    # 2. ЧИСТКА ОТ МУСОРА (Самое важное!)
+    # Удаляем пробелы по краям и случайные кавычки
+    DATABASE_URL = raw_url.strip().replace('"', '').replace("'", "")
 
-# Создаем движок
-engine = create_async_engine(DATABASE_URL, echo=True, connect_args=connect_args)
+    # 3. Исправляем префикс для драйвера asyncpg
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
+    # Для Postgres аргументы не нужны
+    connect_args = {}
+
+# 4. Создаем движок
+# Мы уверены, что URL теперь чистый
+try:
+    engine = create_async_engine(DATABASE_URL, echo=True, connect_args=connect_args)
+except Exception as e:
+    print(f"CRITICAL ERROR: Could not parse URL: {DATABASE_URL}")
+    raise e
 
 AsyncSessionLocal = sessionmaker(
     bind=engine,
