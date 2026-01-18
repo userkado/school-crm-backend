@@ -10,21 +10,26 @@ if not raw_url:
     DATABASE_URL = "sqlite+aiosqlite:///./school.db"
     connect_args = {"check_same_thread": False}
 else:
-    # 2. ЧИСТКА ОТ МУСОРА (Самое важное!)
-    # Удаляем пробелы по краям и случайные кавычки
+    # 2. ЧИСТКА ОТ МУСОРА
+    # Удаляем пробелы, кавычки
     DATABASE_URL = raw_url.strip().replace('"', '').replace("'", "")
+    
+    # !!! ВАЖНОЕ ИСПРАВЛЕНИЕ !!!
+    # Драйвер asyncpg не понимает параметры типа ?sslmode=require
+    # Мы просто отрезаем всё, что идет после знака вопроса
+    if "?" in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.split("?")[0]
 
-    # 3. Исправляем префикс для драйвера asyncpg
+    # 3. Исправляем префикс
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
     elif DATABASE_URL.startswith("postgresql://"):
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
     
-    # Для Postgres аргументы не нужны
+    # Для Postgres аргументы не нужны (Neon сам разберется с SSL)
     connect_args = {}
 
 # 4. Создаем движок
-# Мы уверены, что URL теперь чистый
 try:
     engine = create_async_engine(DATABASE_URL, echo=True, connect_args=connect_args)
 except Exception as e:
