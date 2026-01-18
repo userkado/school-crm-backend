@@ -443,7 +443,42 @@
             if(res.ok) { e.value=''; p.value=''; loadUsers(); loadSettingsData(); }
         }
         async function loadAdminStudents() { const cid=document.getElementById('filter-class-select').value; const r=await fetch(`/students/${cid?'?class_id='+cid:''}`,{headers:{'Authorization':'Bearer '+token}}); const d=await r.json(); const tb=document.getElementById('admin-students-list'); tb.innerHTML=''; d.forEach(s=>{ const c=classesList.find(x=>x.id==s.class_group_id)?.name||'-'; tb.innerHTML+=`<tr><td>${s.full_name}</td><td><span class="badge bg-light text-dark border">${c}</span></td><td class="text-end"><button class="btn btn-sm btn-outline-warning me-1" onclick="openTransfer(${s.id},'${s.full_name}')"><i class="fas fa-exchange-alt"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteStudent(${s.id})"><i class="fas fa-trash"></i></button></td></tr>`; }); }
-        async function loadUsers() { const r=await fetch('/auth/users',{headers:{'Authorization':'Bearer '+token}}); const d=await r.json(); const tb=document.getElementById('users-list'); tb.innerHTML=''; d.forEach(u=>{ tb.innerHTML+=`<tr><td>${u.email}</td><td><span class="badge ${u.role==='ADMIN'?'bg-danger':'bg-primary'}">${u.role}</span></td><td>${u.is_active?'✅':'❌'}</td><td><button class="btn btn-sm btn-light border" onclick="openEditUser(${u.id},'${u.email}','${u.role}',${u.is_active})"><i class="fas fa-edit"></i></button></td></tr>`; }); }
+        
+        // --- UPDATED: Load Users with DELETE button ---
+        async function loadUsers() { 
+            const r=await fetch('/auth/users',{headers:{'Authorization':'Bearer '+token}}); 
+            const d=await r.json(); 
+            const tb=document.getElementById('users-list'); 
+            tb.innerHTML=''; 
+            d.forEach(u=>{ 
+                tb.innerHTML+=`<tr>
+                    <td>${u.email}</td>
+                    <td><span class="badge ${u.role==='ADMIN'?'bg-danger':'bg-primary'}">${u.role}</span></td>
+                    <td>${u.is_active?'✅':'❌'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-light border me-1" onclick="openEditUser(${u.id},'${u.email}','${u.role}',${u.is_active})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`; 
+            }); 
+        }
+
+        // --- NEW: Delete User Function ---
+        async function deleteUser(id) {
+            if(confirm("Haqiqatan ham ushbu foydalanuvchini o'chirmoqchimisiz?")) {
+                const res = await fetch(`/auth/delete/${id}`, {
+                    method: 'POST',
+                    headers: {'Authorization': 'Bearer ' + token}
+                });
+                if(res.ok) {
+                    loadUsers();
+                } else {
+                    const err = await res.json();
+                    alert("Xatolik: " + err.detail);
+                }
+            }
+        }
+
         async function deleteStudent(id) { if(confirm("O'chirilsinmi?")) { await fetch(`/students/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}); loadAdminStudents(); } }
         async function addClass() { const i=document.getElementById('new-class-name'); await fetch('/settings/classes/?name='+i.value,{method:'POST',headers:{'Authorization':'Bearer '+token}}); i.value=''; loadSettingsData(); }
         async function addSubject() { const i=document.getElementById('new-subject-name'); await fetch('/settings/subjects/?name='+i.value,{method:'POST',headers:{'Authorization':'Bearer '+token}}); i.value=''; loadSettingsData(); }

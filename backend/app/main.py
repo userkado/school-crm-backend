@@ -1,23 +1,51 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
 import os
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 
-# Импорты для базы данных
+# 1. Импортируем Базу и Модели
 from app.db.session import engine
 from app.db.base import Base
-# 👇 ВАЖНО: Импортируем модели, чтобы SQLAlchemy узнала о них перед созданием таблиц
-from app.models import user, school 
 
-from app.core.config import settings
-from app.api import auth, classes, students, attendance, grades, schedule, reports
-from app.api import settings as school_settings 
+# Импортируем модели, чтобы SQLAlchemy знала о них перед созданием таблиц
+from app.models.user import User
+from app.models.school import Student, ClassGroup, Schedule, Grade, Attendance, Subject, BellSchedule
+
+# 2. Импортируем Роутеры (Разделы сайта)
+from app.api import (
+    auth,       # Вход/Регистрация
+    classes,    # Управление классами
+    students,   # Управление учениками
+    schedule,   # Расписание
+    grades,     # Оценки
+    attendance, # Посещаемость
+    reports,    # Отчеты
+    settings    # Настройки (звонки, предметы)
+)
 
 app = FastAPI(title="School CRM")
 
-# --- 1. СОЗДАНИЕ ТАБЛИЦ ПРИ ЗАПУСКЕ ---
+# --- 3. Подключаем Статику (CSS, JS) ---
+static_dir = "app/static"
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# --- 4. Настройка Шаблонов (HTML) ---
+templates = Jinja2Templates(directory="app/templates")
+
+# --- 5. Подключаем API Маршруты ---
+app.include_router(auth.router) # Префикс /auth уже внутри
+app.include_router(classes.router, prefix="/classes", tags=["Classes"])
+app.include_router(students.router, prefix="/students", tags=["Students"])
+app.include_router(schedule.router, prefix="/schedule", tags=["Schedule"])
+app.include_router(grades.router, prefix="/grades", tags=["Grades"])
+app.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])
+app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+app.include_router(settings.router, prefix="/settings", tags=["Settings"])
+
+# --- 6. Создание таблиц при старте ---
 @app.on_event("startup")
 async def init_tables():
     print(">>> 🛠️ ПРОВЕРКА БАЗЫ ДАННЫХ: Создание таблиц, если их нет...")
@@ -25,46 +53,25 @@ async def init_tables():
         await conn.run_sync(Base.metadata.create_all)
     print(">>> ✅ БАЗА ДАННЫХ ГОТОВА!")
 
-# --- 2. НАСТРОЙКА CORS ---
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# --- 7. Страницы (Frontend) ---
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/dashboard")
 
-static_dir = "app/static"
-if not os.path.exists(static_dir):
-    os.makedirs(static_dir)
-
-# --- 3. СТАТИКА И ШАБЛОНЫ ---
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
-
-# --- 4. РОУТЕРЫ ---
-app.include_router(auth.router, prefix="/auth", tags=["Auth"])
-app.include_router(classes.router, prefix="/classes", tags=["Classes"])
-app.include_router(students.router, prefix="/students", tags=["Students"])
-app.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])
-app.include_router(grades.router, prefix="/grades", tags=["Grades"])
-app.include_router(schedule.router, prefix="/schedule", tags=["Schedule"])
-app.include_router(school_settings.router, prefix="/settings", tags=["School Settings"])
-app.include_router(reports.router, prefix="/reports", tags=["Reports"])
-
-# --- 5. СТРАНИЦЫ ---
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.get("/login", response_class=HTMLResponse)
+@app.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
-@app.get("/register", response_class=HTMLResponse)
+@app.get("/register")
 async def register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
-@app.get("/dashboard", response_class=HTMLResponse)
+@app.get("/dashboard")
 async def dashboard_page(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    # Данные пользователя подгрузятся через JS (fetch /auth/me)
+    # Здесь просто отдаем каркас страницы
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "current_user": {"email": "Loading...", "role": "GUEST"}, 
+        "users": []
+    })
